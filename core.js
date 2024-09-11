@@ -141,9 +141,9 @@ G3Stage.prototype.getNewestScene = function () {
         index: sceneStack.length - 1
     }
 }
-G3Stage.prototype.updateScene = function (callback, index, run = true) {
-    if (callback) {
-        callback(this._renderContainer.sceneStack[index])
+G3Stage.prototype.updateScene = function (scene, index, run = true) {
+    if (scene && index >= 0) {
+        this._renderContainer.sceneStack[index] = scene
         this._renderContainer.runEngine = run
     }
 }
@@ -167,14 +167,13 @@ function performerFactory(stage) {
     function drawDiscreteLineSegment({description, beforeRender}, {afterCallback} = {}) {
         beforeRender && beforeRender(description)
         const {startCoordinate, endCoordinate, lineInfo} = description
-        const {_ctx: ctx, getStartParams} = stage
-        ctx.strokeStyle = lineInfo.color
-        ctx.beginPath()
-        ctx.moveTo(startCoordinate.x, startCoordinate.y)
-        ctx.lineTo(endCoordinate.x, endCoordinate.y)
-        ctx.closePath()
-        ctx.lineWidth = lineInfo.width || getStartParams().drawParams.lineWidth
-        ctx.stroke()
+        stage._ctx.strokeStyle = lineInfo.color
+        stage._ctx.beginPath()
+        stage._ctx.moveTo(startCoordinate.x, startCoordinate.y)
+        stage._ctx.lineTo(endCoordinate.x, endCoordinate.y)
+        stage._ctx.closePath()
+        stage._ctx.lineWidth = lineInfo.width || stage.getStartParams().drawParams.lineWidth
+        stage._ctx.stroke()
         afterCallback && afterCallback()
     }
 

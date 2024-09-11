@@ -1,3 +1,5 @@
+import {ERROR_PREFIX} from "./enum.js";
+
 /**
  * 深拷贝对象
  * @param target 目标对象
@@ -58,4 +60,40 @@ export function generateUUID() {
     }
 
     return uuid;
+}
+
+export function toObjBy(list, byField) {
+    return list.reduce((result, item) => {
+        const split = byField.split(".")
+        let key = ''
+        for (let i = 0; i < split.length; i++) {
+            if (!key) {
+                key = item[split[i]]
+            } else if (Object.getPrototypeOf(key) === Object.prototype) {
+                key = key[split[i]]
+            } else {
+                throw new Error(`${ERROR_PREFIX} The value corresponding to the '${byField}' field is an string and should be a object.`)
+            }
+        }
+        if (Object.getPrototypeOf(key) === Object.prototype) {
+            throw new Error(`${ERROR_PREFIX} The value corresponding to the '${byField}' field is an object and should be a string.`)
+        }
+        result[key] = item
+        return result
+    }, {})
+}
+
+export function groupBy(list, byField, exclude) {
+    return list.reduce((result, item) => {
+        if (exclude && exclude(item[byField])) {
+            return result
+        }
+        const groupElement = result[item[byField]];
+        if (groupElement) {
+            groupElement.push(item)
+        } else {
+            result[item[byField]] = [item]
+        }
+        return result
+    }, {})
 }
