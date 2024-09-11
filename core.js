@@ -1,52 +1,14 @@
-import {ERROR_PREFIX} from "./enum";
-import {isNotObject, isObject} from "./common/util";
-
-/*
-    performer:  一个区域内的一个绘制项
-    group:   一帧内的某个拥有相同性质绘制项组，1 group = n performer
-    scene:  即一帧绘制， 1 scene = n group
-    stage:  绘制环境， 1 stage = n scene, 且一段时间内只会显示最新scene
- */
-export const drawType = {
-    LINE: 'line',
-    SHAPE: 'shape',
-    RECT: 'rect',
-    POINT: 'point',
-    RECT_TOOLTIP: 'rect_tooltip',
-    LINE_REPLACE: 'line_replace',
-    LINE_CONTINUOUS_COMPOSITE: 'line_continuous_composite',
-    LINE_PARALLEL: 'line_parallel',
-    LINE_SERIES_COMPOSITE: 'line_series_composite',
-}
-
-export const chartsBaseColor = {
-    activeColor: '#1bab16',
-    protrudeColor: '#b70a61',
-    tooltipColor: '#0aa9b7',
-    hoverColor: '#298029',
-    weakColor: '#496977',
-    transparent: 'transparent',
-    normalColor: '#FAFAFA',
-    fillNormalColor: '#1cc6d5',
-}
-
-export const renderModel = {
-    // 根据优先级串行绘制，若存在动画效果，则等待其完成
-    PRIORITY: 'priority',
-    // 并行绘制，互不干扰
-    PARALLEL: 'parallel',
-    RANDOM: 'random',
-}
+import {chartsBaseColor, drawType, ERROR_PREFIX, renderModel} from "./common/enum.js"
+import {deepClone, isNotObject, isObject} from "./common/util.js"
 
 export function G3Stage(dom, startParams) {
     const _this = this
     _this._canvasDom = dom
     _this._ctx = _this._canvasDom.getContext('2d')
     // ${type}: [], type<=>drawType
-    _this._framesList = []
-    // 图表启动参数
+    _this._actionFrames = []
     _this._diagramStartParams = {
-        category: '',  // 'array-relate' |
+        category: '',
         animation: {
             duration: 1000,     // 默认动画持续时间
         },
@@ -63,52 +25,156 @@ export function G3Stage(dom, startParams) {
             ...chartsBaseColor
         }
     }
-    /*
-    {
-        runEngine: false,
-        sceneStack: {
-            contextState: {},
-            renderModel: 'parallel', '> parallel < | priority | random'
-            renderGroup: [
-                {
-                    members: [
-                        {
-                            id: <=> this.description.id,
-                            description: {},
-                            priority: number,
-                            beforeRender: function
-                        }
-                    ],
-                    priority: number,
-                    duration: number,
-                    beforeRender?: function,
-                    type:  'line' | 'font' | 'point' | 'rect' | 'circular' | 'round' | 'line_parallel' | 'line_series' | 'line_replace'
-                    state: 'active' | 'freezing', // freezing状态下渲染目标失去所有动画效果，且渲染优先级为最高“1”
-                }
-            ],
-        }
-    }
-*/
     _this._renderContainer = {
         runEngine: false,
         sceneStack: [],
         trigger: 0
     }
     setStageStartParams(_this._diagramStartParams, startParams)
+    const {typeDrawFunctionMap, ...drawFuncMap} = performerFactory(_this)
 
+    async function priorityRender(renderGroup) {
+        renderGroup.sort((a, b) => a.priority - b.priority)
+        renderGroup.forEach(({members}) => members.sort((a, b) => a.priority - b.priority))
+
+        for (const {type, ...other} of renderGroup) {
+            const draw = drawFuncMap[typeDrawFunctionMap[type]]
+            await new Promise((resolve) => {
+                if (type.endsWith('_composite')) {
+                    let forNo = other.members.length - 1
+                    // HACK
+                    const position = 1
+                    draw(other, {afterCallback: resolve, forNo: (forNo * position).toFixed()})
+                } else {
+                    for (let {description, beforeRender} of other.members) {
+                        draw({description, beforeRender, duration: other.duration})
+                    }
+                    resolve()
+                }
+            })
+        }
+    }
+
+    async function parallelRender(renderGroup) {
+        Promise.all(renderGroup.map(item => {
+            const draw = drawFuncMap[typeDrawFunctionMap[item.type]]
+            if (!draw) {
+                throw new Error(`${ERROR_PREFIX} Unable to find the drawing function corresponding to the type '${item.type}' of the described object.`)
+            }
+            return new Promise((resolve) => {
+                if (item.type.endsWith('_composite')) {
+                    draw(item)
+                } else {
+                    for (const {description, beforeRender} of item.members) {
+                        draw({description, beforeRender, duration: item.duration})
+                    }
+                }
+                resolve()
+            })
+        }))
+    }
+
+    function runEngine(renderContainer) {
+        const {sceneStack} = renderContainer
+        const lastRenderOption = deepClone(sceneStack[sceneStack.length - 1])
+        const renderModelSwitch = {
+            // 优先级串行绘制
+            [renderModel.PRIORITY]: priorityRender,
+            // 全并行绘制
+            [renderModel.PARALLEL]: parallelRender
+        }
+        const {width, height} = _this.getStartParams()
+        _this.clearFrameAndRect(0, 0, width, height)
+        renderModelSwitch[lastRenderOption.renderModel](lastRenderOption.renderGroup)
+        renderContainer.runEngine = false
+    }
+
+    Object.defineProperties(_this._renderContainer, {
+        runEngine: {
+            set(value) {
+                value && runEngine(this)
+            }
+        }
+    })
+}
+
+G3Stage.prototype.getActionFrames = function (typeAndId) {
+    return Object.keys(this._actionFrames).filter(key => key.startsWith(typeAndId)).map(item => this._actionFrames[item]).flat()
+}
+G3Stage.prototype.addActionFrame = function (description, frame) {
+    const type = description.type + '_' + description.id
+    if (!this._actionFrames[type]) {
+        this._actionFrames[type] = []
+    }
+    this._actionFrames[type].push(frame)
+}
+G3Stage.prototype.clearFrameAndRect = function (x, y, w, h, typeDesc) {
+    let actionFrames = ''
+    if (typeDesc) {
+        const {type, id = ''} = typeDesc
+        const typeAndId = `${type}_${id}`
+        actionFrames = G3Stage.prototype.getActionFrames.call(this, typeAndId)
+        actionFrames && actionFrames.forEach(item => cancelAnimationFrame(item))
+    } else {
+        actionFrames = G3Stage.prototype.getActionFrames.call(this, '')
+        actionFrames && actionFrames.forEach(item => cancelAnimationFrame(item))
+    }
+    this._ctx.clearRect(x, y, w, h)
+}
+G3Stage.prototype.pushScene = function ({renderGroup, renderModel = 'parallel'}, run = true) {
+    this._ctx.save()
+    this._renderContainer.sceneStack.push({renderGroup, renderModel})
+    this._renderContainer.runEngine = run
+}
+G3Stage.prototype.popScene = function (index = 1, run = true) {
+    index = Math.min(index, this._renderContainer.sceneStack.length - 1)
+    for (let i = 0; i < index; i++) {
+        this._ctx.restore()
+        this._renderContainer.sceneStack.pop()
+        this._renderContainer.runEngine = run
+    }
+}
+G3Stage.prototype.getNewestScene = function () {
+    const sceneStack = this._renderContainer.sceneStack;
+    return {
+        scene: sceneStack[sceneStack.length - 1],
+        index: sceneStack.length - 1
+    }
+}
+G3Stage.prototype.updateScene = function (callback, index, run = true) {
+    if (callback) {
+        callback(this._renderContainer.sceneStack[index])
+        this._renderContainer.runEngine = run
+    }
+}
+G3Stage.prototype.updateNewestScene = function (callback, run = true) {
+    if (callback) {
+        callback(this.getNewestScene())
+        this._renderContainer.runEngine = run
+    }
+}
+G3Stage.prototype.addEvent = function (eventName, callback) {
+    this._canvasDom.addEventListener(eventName, callback)
+}
+G3Stage.prototype.removeEvent = function (eventName, callback) {
+    this._canvasDom.removeEventListener(eventName, callback)
+}
+G3Stage.prototype.getStartParams = function () {
+    return this._diagramStartParams
 }
 
 function performerFactory(stage) {
     function drawDiscreteLineSegment({description, beforeRender}, {afterCallback} = {}) {
         beforeRender && beforeRender(description)
         const {startCoordinate, endCoordinate, lineInfo} = description
-        stage._ctx.strokeStyle = lineInfo.color
-        stage._ctx.beginPath()
-        stage._ctx.moveTo(startCoordinate.x, startCoordinate.y)
-        stage._ctx.lineTo(endCoordinate.x, endCoordinate.y)
-        stage._ctx.closePath()
-        stage._ctx.lineWidth = lineInfo.width || stage._diagramStartParams.drawParams.lineWidth
-        stage._ctx.stroke()
+        const {_ctx: ctx, getStartParams} = stage
+        ctx.strokeStyle = lineInfo.color
+        ctx.beginPath()
+        ctx.moveTo(startCoordinate.x, startCoordinate.y)
+        ctx.lineTo(endCoordinate.x, endCoordinate.y)
+        ctx.closePath()
+        ctx.lineWidth = lineInfo.width || getStartParams().drawParams.lineWidth
+        ctx.stroke()
         afterCallback && afterCallback()
     }
 
@@ -140,7 +206,7 @@ function performerFactory(stage) {
 
     function drawDiscreteLineSegmentWithParallel({description, beforeRender, duration}, {afterCallback} = {}) {
         const {startCoordinate, endCoordinate, lineInfo} = description
-        const {drawParams, animation} = stage._diagramStartParams
+        const {drawParams, animation} = stage.getStartParams()
         const runDuration = duration || animation.duration
 
         let startTime = 0
@@ -173,12 +239,12 @@ function performerFactory(stage) {
             prevY = nextY
 
             if (progress < 1) {
-                stage.addFrame(description, requestAnimationFrame(step))
+                stage.addActionFrame(description, requestAnimationFrame(step))
             } else {
                 afterCallback && afterCallback(description)
             }
         })
-        stage.addFrame(description, frame)
+        stage.addActionFrame(description, frame)
     }
 
     return {
@@ -217,7 +283,7 @@ function performerFactory(stage) {
         },
         drawContinuousLineSegment: ({members}, {afterCallback = null, forNo = 1} = {}) => {
             stage._ctx.beginPath()
-            const diagramStartParams = stage._diagramStartParams
+            const diagramStartParams = stage.getStartParams()
             for (const index in members) {
                 const {startCoordinate, pointInfo} = members[index].description
                 stage._ctx.lineWidth = pointInfo.entanglementLineWidth || diagramStartParams.drawParams.lineWidth
@@ -235,66 +301,6 @@ function performerFactory(stage) {
     }
 }
 
-function renderEngine(stage) {
-    async function priorityRender(renderGroup) {
-        renderGroup.sort((a, b) => a.priority - b.priority)
-        renderGroup.forEach(({members}) => members.sort((a, b) => a.priority - b.priority))
-
-        for (const {type, ...other} of renderGroup) {
-            const draw = context[context.typeDrawFunctionMap[type]]
-            await new Promise((resolve) => {
-                if (type.endsWith('_composite')) {
-                    let forNo = other.members.length - 1
-                    // HACK
-                    const position = 1
-                    draw(other, {afterCallback: resolve, forNo: (forNo * position).toFixed()})
-                } else {
-                    for (let {description, beforeRender} of other.members) {
-                        draw({description, beforeRender, duration: other.duration})
-                    }
-                    resolve()
-                }
-            })
-        }
-    }
-
-    async function parallelRender(renderGroup) {
-        Promise.all(renderGroup.map(item => {
-            const draw = context[context.typeDrawFunctionMap[item.type]]
-            if (!draw) {
-                throw new Error(`${ERROR_PREFIX} Unable to find the drawing function corresponding to the type '${item.type}' of the described object.`)
-            }
-            return new Promise((resolve) => {
-                if (item.type.endsWith('_composite')) {
-                    draw(item)
-                } else {
-                    for (const {description, beforeRender} of item.members) {
-                        draw({description, beforeRender, duration: item.duration})
-                    }
-                }
-                resolve()
-            })
-        }))
-    }
-
-    // 获取sceneStack的最新渲染对象，根据renderItem的key所对应的绘制方法绘制图形
-    watch(renderContainer, ({runEngine, sceneStack}) => {
-        if (!runEngine) {
-            return
-        }
-        const lastRenderOption = deepClone(sceneStack[sceneStack.length - 1])
-        const renderModelSwitch = {
-            // 优先级串行绘制
-            [renderModel.PRIORITY]: priorityRender,
-            // 全并行绘制
-            [renderModel.PARALLEL]: parallelRender
-        }
-        const {width, height} = context.getDiagramStartParams()
-        context.clearFrameAndRect(0, 0, width, height)
-        renderModelSwitch[lastRenderOption.renderModel](lastRenderOption.renderGroup)
-        renderContainer.runEngine = false
-    }, {deep: true})
-}
 function setStageStartParams(currentParams, config) {
     if (isNotObject(config)) {
         throw new Error(`${ERROR_PREFIX}The type of diagram config must be an Object.`)
@@ -317,66 +323,4 @@ function setStageStartParams(currentParams, config) {
         }
     }
     recursionAssign(currentParams, config)
-}
-
-G3Stage.prototype.getFrameList = function (typeAndId) {
-    return Object.keys(this._framesList).filter(key => key.startsWith(typeAndId)).map(item => this._framesList[item]).flat()
-}
-G3Stage.prototype.addFrame = function (description, frame) {
-    const type = description.type + '_' + description.id
-    if (!this._framesList[type]) {
-        this._framesList[type] = []
-    }
-    this._framesList[type].push(frame)
-}
-G3Stage.prototype.clearFrameAndRect = function (x, y, w, h, typeDesc) {
-    let frameList = ''
-    if (typeDesc) {
-        const {type, id = ''} = typeDesc
-        const typeAndId = `${type}_${id}`
-        frameList = G3Stage.prototype.getFrameList.call(this, typeAndId)
-        frameList && frameList.forEach(item => cancelAnimationFrame(item))
-    } else {
-        frameList = G3Stage.prototype.getFrameList.call(this, '')
-        frameList && frameList.forEach(item => cancelAnimationFrame(item))
-    }
-    this._ctx.clearRect(x, y, w, h)
-}
-G3Stage.prototype.pushRenderScene = function ({renderGroup, renderModel = 'parallel'}, run = true) {
-    this._ctx.save()
-    this._renderContainer.sceneStack.push({renderGroup, renderModel})
-    this._renderContainer.runEngine = run
-}
-G3Stage.prototype.popRenderScene = function (index = 1, run = true) {
-    index = Math.min(index, this._renderContainer.sceneStack.length - 1)
-    for (let i = 0; i < index; i++) {
-        this._ctx.restore()
-        this._renderContainer.sceneStack.pop()
-        this._renderContainer.runEngine = run
-    }
-}
-G3Stage.prototype.getNewestRenderScene = function () {
-    const sceneStack = this._renderContainer.sceneStack;
-    return {
-        scene: sceneStack[sceneStack.length - 1],
-        index: sceneStack.length - 1
-    }
-}
-G3Stage.prototype.updateRenderScene = function (callback, index, run = true) {
-    if (callback) {
-        callback(this._renderContainer.sceneStack[index])
-        this._renderContainer.runEngine = run
-    }
-}
-G3Stage.prototype.updateNewestRenderScene = function (callback, run = true) {
-    if (callback) {
-        callback(this.getNewestRenderScene())
-        this._renderContainer.runEngine = run
-    }
-}
-G3Stage.prototype.addEvent = function (eventName, callback) {
-    this._canvasDom.addEventListener(eventName, callback)
-}
-G3Stage.prototype.addEvent = function (eventName, callback) {
-    this._canvasDom.removeEventListener(eventName, callback)
 }
