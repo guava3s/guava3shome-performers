@@ -115,9 +115,6 @@ G3Stage.prototype.clearFrameAndRect = function (x, y, w, h, typeDesc) {
         const typeAndId = `${type}_${id}`
         actionFrames = G3Stage.prototype.getActionFrames.call(this, typeAndId)
         actionFrames && actionFrames.forEach(item => cancelAnimationFrame(item))
-    } else {
-        actionFrames = G3Stage.prototype.getActionFrames.call(this, '')
-        actionFrames && actionFrames.forEach(item => cancelAnimationFrame(item))
     }
     this._ctx.clearRect(x, y, w, h)
 }
@@ -131,8 +128,8 @@ G3Stage.prototype.popScene = function (index = 1, run = true) {
     for (let i = 0; i < index; i++) {
         this._ctx.restore()
         this._renderContainer.sceneStack.pop()
-        this._renderContainer.runEngine = run
     }
+    this._renderContainer.runEngine = run
 }
 G3Stage.prototype.getNewestScene = function () {
     const sceneStack = this._renderContainer.sceneStack;
