@@ -48,9 +48,9 @@ const stage = new G3Stage(dom, startParams)
 | addEvent          | eventName: string;<br/>callback: function                                     | undefined                         | 为该stage添加事件                              |
 | removeEvent       | eventName: string;<br/>callback: function                                     | undefined                         | 为该stage移除事件                              |
 | getStartParams    |                                                                               | startParams                       | 获取启动参数信息                                 |
-| getActionFrames   | typeAndId: string                                                             |                                   | 获取当前正在绘制或等待绘制的关键帧                        |
-| addActionFrame    | description: DescriptionModel;<br/> frame: number                             |                                   | 添加绘制关键帧                                  |
-| clearFrameAndRect | x: number;<br/>y: number;<br/>w: number;<br/>h: number; <br/>typeDesc: object |                                   | 清除指定区域的内容，并清除指定type与id下的关键帧              |
+| getActionFrames   | typeAndId: string                                                             | Array                             | 获取当前正在绘制或等待绘制的关键帧                        |
+| addActionFrame    | description: DescriptionModel;<br/> frame: number                             | undefined                         | 添加绘制关键帧                                  |
+| clearFrameAndRect | x: number;<br/>y: number;<br/>w: number;<br/>h: number; <br/>typeDesc: object | undefined                         | 清除指定区域的内容，并清除指定type与id下的关键帧              |
 
 ## model
 
