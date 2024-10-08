@@ -1,7 +1,7 @@
 import {chartsBaseColor, drawType, ERROR_PREFIX, renderModel} from "./common/enum.js"
 import {deepClone, isNotObject, isObject} from "./common/util.js"
 
-export function G3Stage(dom, startParams) {
+export default function G3Stage(dom, startParams) {
     const _this = this
     _this._canvasDom = dom
     _this._ctx = _this._canvasDom.getContext('2d')
@@ -76,6 +76,7 @@ export function G3Stage(dom, startParams) {
 
     function runEngine(renderContainer) {
         const {sceneStack} = renderContainer
+        renderContainer.trigger++
         const lastRenderOption = deepClone(sceneStack[sceneStack.length - 1])
         const renderModelSwitch = {
             // 优先级串行绘制
@@ -243,57 +244,90 @@ function performerFactory(stage) {
         stage.addActionFrame(description, frame)
     }
 
+    async function drawDiscreteLineSegmentWithSeries({members, beforeRender, duration = 250}, {
+        afterCallback,
+        forNo
+    } = {}) {
+        const segmentDuration = duration / members.length
+        for (const index in members) {
+            const {description, ...other} = members[index]
+            await new Promise((resolve) => {
+                drawDiscreteLineSegmentWithParallel(
+                    {
+                        description,
+                        duration: segmentDuration,
+                        beforeRender: other.beforeRender || beforeRender
+                    },
+                    {afterCallback: resolve}
+                )
+            })
+            index === forNo && afterCallback && afterCallback()
+        }
+    }
+
+
+    function drawContinuousLineSegment({members}, {afterCallback = null, forNo = 1} = {}) {
+        stage._ctx.beginPath()
+        const diagramStartParams = stage.getStartParams()
+        for (const index in members) {
+            const {startCoordinate, pointInfo} = members[index].description
+            stage._ctx.lineWidth = pointInfo.entanglementLineWidth || diagramStartParams.drawParams.lineWidth
+            stage._ctx.strokeStyle = pointInfo.entanglementColor || diagramStartParams.color.fillNormalColor
+
+            if (index === '0') {
+                stage._ctx.moveTo(startCoordinate.x, startCoordinate.y)
+                continue
+            }
+            stage._ctx.lineTo(startCoordinate.x, startCoordinate.y)
+            parseInt(index) === forNo && afterCallback && afterCallback()
+        }
+        stage._ctx.stroke()
+    }
+
+    function drawEntity({description, beforeRender}) {
+        const {x, y} = description.startCoordinate
+        stage._ctx.drawImage(description.imageInfo.entity, x, y)
+    }
+
+    function drawParallelEntities({members}, {afterCallback = null, forNo = 1} = {}) {
+        for (const index in members) {
+            drawEntity(members[index].description)
+        }
+    }
+
+    async function drawSeriesEntity({members, beforeRender, duration = 250}, {
+        afterCallback,
+        forNo
+    } = {}) {
+        for (const index in members) {
+            await new Promise((resolve) => {
+                drawEntity(members[index].description)
+                resolve()
+            })
+            parseInt(index) === forNo && afterCallback && afterCallback()
+        }
+
+    }
+
     return {
         typeDrawFunctionMap: {
             [drawType.RECT]: 'drawNode',
+            [drawType.ENTITY]: 'drawEntity',
             [drawType.RECT_TOOLTIP]: 'drawNode',
             [drawType.LINE]: 'drawDiscreteLineSegment',
             [drawType.LINE_REPLACE]: 'drawDiscreteLineSegment',
             [drawType.LINE_CONTINUOUS_COMPOSITE]: 'drawContinuousLineSegment',
             [drawType.LINE_PARALLEL]: 'drawDiscreteLineSegmentWithParallel',
             [drawType.LINE_SERIES_COMPOSITE]: 'drawDiscreteLineSegmentWithSeries',
+            [drawType.ENTITY_PARALLEL]: 'drawParallelEntities',
+            [drawType.ENTITY_SERIES]: 'drawSeriesEntity',
         },
         drawNode,
         drawDiscreteLineSegment,
         drawDiscreteLineSegmentWithParallel,
-        drawDiscreteLineSegmentWithSeries: async ({
-                                                      members,
-                                                      beforeRender,
-                                                      duration = 250
-                                                  }, {afterCallback, forNo} = {}) => {
-            const segmentDuration = duration / members.length
-            for (const index in members) {
-                const {description, ...other} = members[index]
-                await new Promise((resolve) => {
-                    drawDiscreteLineSegmentWithParallel(
-                        {
-                            description,
-                            duration: segmentDuration,
-                            beforeRender: other.beforeRender || beforeRender
-                        },
-                        {afterCallback: resolve}
-                    )
-                })
-                index === forNo && afterCallback && afterCallback()
-            }
-        },
-        drawContinuousLineSegment: ({members}, {afterCallback = null, forNo = 1} = {}) => {
-            stage._ctx.beginPath()
-            const diagramStartParams = stage.getStartParams()
-            for (const index in members) {
-                const {startCoordinate, pointInfo} = members[index].description
-                stage._ctx.lineWidth = pointInfo.entanglementLineWidth || diagramStartParams.drawParams.lineWidth
-                stage._ctx.strokeStyle = pointInfo.entanglementColor || diagramStartParams.color.fillNormalColor
-
-                if (index === '0') {
-                    stage._ctx.moveTo(startCoordinate.x, startCoordinate.y)
-                    continue
-                }
-                stage._ctx.lineTo(startCoordinate.x, startCoordinate.y)
-                parseInt(index) === forNo && afterCallback && afterCallback()
-            }
-            stage._ctx.stroke()
-        }
+        drawDiscreteLineSegmentWithSeries,
+        drawContinuousLineSegment,
+        drawParallelEntities
     }
 }
 

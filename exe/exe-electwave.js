@@ -1,5 +1,5 @@
 import {generateUUID} from "../common/util.js";
-import {G3Stage} from "../core.js"
+import G3Stage from "../core.js"
 import {drawType} from "../common/enum.js";
 export default function exeElectWave(dom, startParams = {category: 'lightning', width: 600, height: 600}, instanceParams) {
 
