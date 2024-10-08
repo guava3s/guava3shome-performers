@@ -116,11 +116,18 @@ const stage = new G3Stage(dom, startParams)
 description:{ 节点在canvas的描述信息
   id, 描述信息编号uuid
   owner<=>this.meta.name,
-  type, 'line' | 'shape' | 'font' | 'point'
+  type, 'line' | 'shape' | 'font' | 'point' | 'image'
   startCoordinate:{x,y},
   endCoordinate?:{x,y},
   node?<=>this.meta,
-  active?, true
+  active?, true,
+  angle?, 0
+  scale?, 1
+  imageInfo?:{
+    entity,
+    width?,
+    height?,
+  },
   shapeInfo?:{
     color: [    节点填充色,长度大于1，则使用渐变,
         '#3e2554',<==>[0.5, '#3e2554']
