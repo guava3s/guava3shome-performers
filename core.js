@@ -323,11 +323,13 @@ function performerFactory(stage) {
             [drawType.ENTITY_SERIES]: 'drawSeriesEntity',
         },
         drawNode,
+        drawEntity,
         drawDiscreteLineSegment,
         drawDiscreteLineSegmentWithParallel,
         drawDiscreteLineSegmentWithSeries,
         drawContinuousLineSegment,
-        drawParallelEntities
+        drawParallelEntities,
+        drawSeriesEntity
     }
 }
 
