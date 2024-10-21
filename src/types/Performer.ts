@@ -2,8 +2,8 @@ import {MetaCoordinate} from "./Coordinate";
 import {PERFORMER_TYPE} from "../common/enums";
 
 export interface PerformerDescription {
-    id: string
-    type: PERFORMER_TYPE
+    readonly id: string
+    readonly type: PERFORMER_TYPE
     startCoordinate: MetaCoordinate
     endCoordinate?: MetaCoordinate
     active?: boolean

@@ -2,7 +2,7 @@ import {MetaConfig} from "./types/Config";
 import {CHARTS_BASE_COLOR, ERROR_PREFIX, STAGE_RENDER_MODEL} from "./common/enums";
 import {deepClone, isNotObject, isObject} from "./common/utils";
 import {PerformerDescription} from "./types/Performer";
-import {StageActionFrame, StageRenderContainer, StageScene} from "./types/Stage";
+import {StageActionFrame, StageGroup, StageRenderContainer, StageScene} from "./types/Stage";
 import {RTActionFrameDesc, RTScenePosition, RTSceneUpdateCallback} from "./types/Runtime";
 
 export default class G3Stage {
@@ -89,9 +89,9 @@ export default class G3Stage {
         this._ctx.clearRect(x, y, w, h)
     }
 
-    pushScene({renderGroup, renderModel}: StageScene, run: boolean): void {
+    pushScene({group, model = STAGE_RENDER_MODEL.parallel}: StageScene, run: boolean = true): void {
         this._ctx.save()
-        this._renderContainer.sceneStack.push({renderGroup, renderModel})
+        this._renderContainer.sceneStack.push({group, model})
         this._renderContainer.runEngine = run
     }
 
@@ -104,6 +104,12 @@ export default class G3Stage {
         }
         this._renderContainer.runEngine = run
         return stageStack
+    }
+
+    pushSimpleScene(group: StageGroup, run: boolean = true) {
+        this.pushScene({
+            group: [group]
+        }, run)
     }
 
     getNewestScene(): RTScenePosition {

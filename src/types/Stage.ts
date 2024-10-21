@@ -9,16 +9,16 @@ export interface StageRenderContainer {
 
 export interface StageScene {
     contextState?: object
-    renderModel: STAGE_RENDER_MODEL
-    renderGroup: Array<StageGroup>
+    model?: STAGE_RENDER_MODEL
+    group: Array<StageGroup>
 }
 
 export interface StageGroup {
-    members: Array<StageGroupMember>
-    priority: number
-    beforeRender?: (description: PerformerDescription) => void
     type: STAGE_GROUP_GUIDE
-    duration: number
+    members: Array<StageGroupMember>
+    priority?: number
+    beforeRender?: (description: PerformerDescription) => void
+    duration?: number
 }
 
 export interface StageGroupMember {
