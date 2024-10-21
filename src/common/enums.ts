@@ -1,3 +1,4 @@
+export const ERROR_PREFIX = "[Guava3shome Error] >> "
 export enum DRAY_TYPE {
     LINE = 'line',
     SHAPE = 'shape',
@@ -35,7 +36,10 @@ export enum PERFORMER_TYPE {
     curve = 'curve',
 }
 
-export enum STAGE_RENDER_GUIDE {
+/**
+ * 本组成员调度指导
+ */
+export enum STAGE_GROUP_GUIDE {
     line_normal = 'line_normal',
     line_parallel = 'line_parallel',
     line_series = 'line_series',

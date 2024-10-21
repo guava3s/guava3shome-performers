@@ -1,16 +1,20 @@
+import {SETTING_COLORS} from "./Colors";
+
 export interface MetaConfig {
-    category?: string
     // 默认画布宽度
     readonly width: number
     // 默认画布高度
     readonly height: number
-    readonly animation: MetaConfigAnimation
-    readonly tooltip: MetaConfigToolTip
-    readonly drawParams: MetaConfigDrawParams
+    animation?: MetaConfigAnimation
+    tooltip?: MetaConfigToolTip
+    drawParams?: MetaConfigDrawParams
+    colors?: SETTING_COLORS
 }
 
 export interface MetaConfigToolTip {
+    // x点与鼠标默认距离
     readonly xDistance: number
+    // y点与鼠标默认距离
     readonly yDistance: number
 }
 

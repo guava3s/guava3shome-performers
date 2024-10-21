@@ -1,4 +1,4 @@
-import {MetaCoordinate} from "./Meta";
+import {MetaCoordinate} from "./Coordinate";
 import {PERFORMER_TYPE} from "../common/enums";
 
 export interface PerformerDescription {
@@ -9,7 +9,15 @@ export interface PerformerDescription {
     active?: boolean
     angle?: number
     scale?: number
+    detail?: PerformerTypes
 }
+
+export type PerformerTypes =
+    PerformerTypeLineInfo
+    | PerformerTypePointInfo
+    | PerformerTypeFontInfo
+    | PerformerTypeImageInfo
+    | PerformerTypeShapeInfo
 
 export interface PerformerTypeLineInfo {
     width: number
