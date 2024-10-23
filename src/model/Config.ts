@@ -11,6 +11,10 @@ export interface MetaConfig {
     colors?: SETTING_COLORS
     // 若存在动画时，计算在距离动画结束多久(0-1)时，直接渲染下一组
     approachEndAppearance?: number
+    // 场景数据变化时强制自动刷新
+    useForceAutoRefresh?: boolean
+    // 切换过渡
+    useSceneTransition?: boolean
 }
 
 export interface MetaConfigToolTip {
