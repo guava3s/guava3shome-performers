@@ -264,22 +264,22 @@ export default function usePerformersArrayRelate(doms, startParams = {
     function opChartsDeriveTooltip(node, mouseCoordinate) {
         const description = calcTooltip(node, mouseCoordinate)
         mainStage.updateNewestScene(({scene}) => {
-            const rectTooltip = scene.renderGroup.find(item => item.type === drawType.RECT_TOOLTIP)
+            const rectTooltip = scene.groups.find(item => item.model === drawType.RECT_TOOLTIP)
             if (rectTooltip) {
-                scene.renderModel = renderModel.PARALLEL
+                scene.mode = renderModel.PARALLEL
                 rectTooltip.members = [{
                     id: description.id,
                     description,
                     priority: 1
                 }]
             } else {
-                scene.renderGroup.push({
+                scene.groups.push({
                     members: [{
                         id: description.id,
                         description,
                         priority: 1
                     }],
-                    type: drawType.RECT_TOOLTIP,
+                    model: drawType.RECT_TOOLTIP,
                     priority: Date.now()
                 })
             }
