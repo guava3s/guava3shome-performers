@@ -1,18 +1,6 @@
+import {PrLine} from "../base/PrLine";
+
 export const ERROR_PREFIX = "[Guava3shome Error] >> "
-export enum DRAY_TYPE {
-    LINE = 'line',
-    SHAPE = 'shape',
-    RECT = 'rect',
-    ENTITY = 'entity',
-    POINT = 'point',
-    RECT_TOOLTIP = 'rect_tooltip',
-    LINE_REPLACE = 'line_replace',
-    LINE_CONTINUOUS_COMPOSITE = 'line_continuous_composite',
-    LINE_PARALLEL = 'line_parallel',
-    LINE_SERIES_COMPOSITE = 'line_series_composite',
-    ENTITY_PARALLEL = 'entity_parallel',
-    ENTITY_SERIES = 'entity_series',
-}
 
 export enum CHARTS_BASE_COLOR {
     activeColor = '#1bab16',
@@ -22,19 +10,25 @@ export enum CHARTS_BASE_COLOR {
     weakColor = '#496977',
     transparent = 'transparent',
     normalColor = '#FAFAFA',
+    reBackgroundColor = '#000000',
     fillNormalColor = '#1cc6d5',
 }
 
 export enum PERFORMER_TYPE {
-    line = 'line',
-    font = 'font',
-    point = 'point',
-    image = 'image',
-    rect = 'rect',
-    circular = 'circular',
-    round = 'round',
-    curve = 'curve',
+    // RECT = 'RECT',
+    LINE = 'LINE',
+    // FONT = 'FONT',
+    // POINT = 'POINT',
+    // IMAGE = 'IMAGE',
+    // CIRCULAR = 'CIRCULAR',
+    // ROUND = 'ROUND',
+    // CURVE = 'CURVE',
 }
+
+export const PERFORMER_TYPE_MAP = {
+    LINE: PrLine
+}
+
 
 /**
  * 本组成员调度指导
@@ -60,8 +54,8 @@ export enum STAGE_GROUP_GUIDE {
 
 export enum STAGE_RENDER_MODEL {
     // 并行绘制，互不干扰
-    parallel = 'parallel',
+    PARALLEL = 'PARALLEL',
     // 根据优先级串行绘制，若存在动画效果，则等待其完成
-    priority = 'priority',
-    random = 'random'
+    PRIORITY = 'PRIORITY',
+    PRIORITY_RANDOM = 'RANDOM'
 }

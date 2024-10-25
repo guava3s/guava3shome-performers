@@ -1,15 +1,57 @@
-import {deepClone} from "../common/utils";
+import {deepClone, emptyFunc} from "../common/utils";
 import {STAGE_RENDER_MODEL} from "../common/enums";
-import {StageGroup} from "./Stage";
-import genIncId, {genName} from "../common/trigger";
-import {IRTRequiredId} from "../runtime";
+import {incId} from "../common/trigger";
+import {PerformerDescription} from "./Performer";
 
-export function fillGroup(group: StageGroup): IRTRequiredId<StageGroup> {
-    group = deepClone(group)
-    !group.id && (group.id = genIncId())
-    !group.model && (group.model = STAGE_RENDER_MODEL.PARALLEL)
-    isNaN(group.priority + 1) && (group.priority = +group.id)
-    isNaN(group.duration + 1) && (group.duration = 0)
-    return group as IRTRequiredId<StageGroup>
+export interface BlurGroup extends GroupRenderParams {
+    name: string
+    members: Array<BlurGroupMember>
+    id?: string
+    mode?: STAGE_RENDER_MODEL
 }
+
+export interface BlurGroupMember extends GroupRenderParams {
+    description: PerformerDescription
+}
+
+interface GroupRenderParams {
+    priority?: number
+    duration?: number,
+    beforeRender?: (description: PerformerDescription) => void
+    afterRender?: (description: PerformerDescription) => void
+}
+
+
+export function fillGroup(group: BlurGroup[]): Required<BlurGroup>[] {
+    let groupStartIndex = calcPriorityMinIndex(group)
+    return group.map(({members: oldMembers, ...other}: BlurGroup, index: number) => {
+
+        let memberStartIndex = calcPriorityMinIndex(oldMembers)
+        const members = oldMembers.map(({description, ...other}) => {
+            return Object.assign({
+                duration: 0,
+                priority: memberStartIndex++,
+                beforeRender: emptyFunc,
+                afterRender: emptyFunc,
+                description: deepClone(description)
+            }, other) as Required<BlurGroupMember>
+        })
+
+        return Object.assign({
+            id: incId(),
+            mode: STAGE_RENDER_MODEL.PARALLEL,
+            duration: 0,
+            priority: groupStartIndex++,
+            beforeRender: emptyFunc,
+            afterRender: emptyFunc,
+            members
+        }, other)
+    })
+}
+
+function calcPriorityMinIndex(entity: GroupRenderParams[]): number {
+    const map = entity.filter(obj => !isNaN(obj.priority + 1)).map(item => item.priority) as number[]
+    return Math.min(...map) - (entity.length - map.length)
+}
+
 

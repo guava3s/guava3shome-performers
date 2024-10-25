@@ -7,7 +7,7 @@ export function isNotObject(item: any): boolean {
 }
 
 export function deepClone<T>(target: any): T {
-    let result;
+    let result: any;
     if (typeof target === 'object') {
         if (Array.isArray(target)) {
             result = [];
@@ -53,4 +53,7 @@ export function generateUUID(): string {
     }
 
     return uuid;
+}
+
+export function emptyFunc(): any {
 }
