@@ -121,7 +121,7 @@ G3Stage.prototype.clearFrameAndRect = function (x, y, w, h, typeDesc) {
 }
 G3Stage.prototype.pushScene = function ({renderGroup, renderModel = 'parallel'}, run = true) {
     this._ctx.save()
-    this._renderContainer.sceneStack.push({renderGroup, renderModel})
+    this._renderContainer.sceneStack.push({groups: renderGroup, model: renderModel})
     this._renderContainer.runEngine = run
 }
 G3Stage.prototype.popScene = function (index = 1, run = true) {
