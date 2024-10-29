@@ -3,7 +3,7 @@ import {StageContext} from "./Stage";
 import {incId} from "../common/trigger";
 import {SceneOperation} from "../index";
 import {PerformerDescriptionInstance} from "./Performer";
-import {fillGroup, BlurGroup} from "./Group";
+import {fillGroup, BlurGroup, BlurGroupWithPerformers, PerformerMap} from "./Group";
 import {deepClone} from "../common/utils";
 
 export interface BlurScene {
@@ -44,9 +44,12 @@ export class StageScene implements SceneOperation {
         !this._stage?.hasScene(this.id as string) && this._stage?.pushScene(this, run)
     }
 
-    getGroups(): Required<BlurGroup>[] {
+    getGroups(): Required<BlurGroupWithPerformers>[] {
         return Array.from(this._groups.values()).map(([_, {members, ...other}]) => {
             return {
+                performers: deepClone(members.reduce((result: PerformerMap, {description}) => {
+                    return (result[description.id] = this._performers.get(description.id as string) as PerformerDescriptionInstance, result)
+                }, {})),
                 members: deepClone(members),
                 ...other
             }

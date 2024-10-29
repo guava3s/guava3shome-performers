@@ -1,7 +1,7 @@
 import {deepClone, emptyFunc} from "../common/utils";
 import {STAGE_RENDER_MODEL} from "../common/enums";
 import {incId} from "../common/trigger";
-import {PerformerDescription} from "./Performer";
+import {PerformerDescription, PerformerDescriptionInstance} from "./Performer";
 
 export interface BlurGroup extends GroupRenderParams {
     name: string
@@ -9,6 +9,9 @@ export interface BlurGroup extends GroupRenderParams {
     id?: string
     mode?: STAGE_RENDER_MODEL
 }
+
+export type PerformerMap = Record<string, PerformerDescriptionInstance>
+export type BlurGroupWithPerformers = BlurGroup & Record<'performers', PerformerMap>
 
 export interface BlurGroupMember extends GroupRenderParams {
     description: PerformerDescription

@@ -15,9 +15,12 @@ export interface PerformerDescription {
     scale?: number
     length?: number
     width?: number
+    lineWidth?: number
     color?: string | Array<string> | Array<[number, string]>
     followerLineColor?: string
 }
+
+export type PerformerForActionFrame = Pick<PerformerDescription, 'type' | 'id'>
 
 export abstract class PerformerDescriptionInstance {
 
@@ -26,6 +29,7 @@ export abstract class PerformerDescriptionInstance {
     active?: boolean
     angle?: number
     scale?: number
+
 
     protected constructor(public type: PERFORMER_TYPE) {
         this.fillPerformer()
@@ -38,8 +42,9 @@ export abstract class PerformerDescriptionInstance {
 
     protected abstract fillPerformer(): void;
 
-    protected abstract perform(stage: StageContext, item: BlurGroupMember, afterCallback?: () => void): void;
+    abstract perform(stage: StageContext, item: BlurGroupMember, afterCallback?: () => void): void;
 
+    abstract performForAnimation(stage: StageContext, item: BlurGroupMember, afterCallback?: () => void): void;
 }
 
 export interface Performer {

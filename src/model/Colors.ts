@@ -6,4 +6,5 @@ export interface SETTING_COLORS {
     fillNormalColor?: string
     tooltipColor?: string
     weakColor?: string
+    defaultColor?: string
 }

@@ -3,7 +3,11 @@ import {StageContext} from "./model/Stage";
 import {STAGE_RENDER_MODEL} from "./common/enums";
 import {BlurGroup} from "./model/Group";
 
-export function useRenderEngine(stage: StageContext) {
+export interface RenderOptionDetail {
+    [key: string]: (groups: Array<BlurGroup>) => Promise<void>
+}
+
+export function useRenderEngine(stage: StageContext): RenderOptionDetail {
 
     return {
         [STAGE_RENDER_MODEL.PRIORITY]: async function (groups: Array<BlurGroup>): Promise<void> {
