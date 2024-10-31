@@ -12,7 +12,7 @@ export interface MetaConfig {
     approachEndAppearance?: number
     // 场景数据变化时强制自动刷新
     useForceAutoRefresh?: boolean
-    // 切换过渡
+    // 场景切换过渡
     useSceneTransition?: boolean
 }
 

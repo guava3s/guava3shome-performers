@@ -16,7 +16,7 @@ export interface BlurScene {
 export class StageScene implements SceneOperation {
 
     readonly id = incId()
-    private _stage: StageContext | null
+    private _stage: StageContext | null = null
     /**
      * name-[id,entity]
      * @private
@@ -42,6 +42,7 @@ export class StageScene implements SceneOperation {
             }
         }
         !this._stage?.hasScene(this.id as string) && this._stage?.pushScene(this, run)
+        groups.length && this._stage?.runRender(!!run)
     }
 
     getGroups(): Required<BlurGroupWithPerformers>[] {
@@ -65,6 +66,7 @@ export class StageScene implements SceneOperation {
                 }
                 this._groups.delete(name)
             })
+            names.length && this._stage?.runRender(!!run)
             return
         }
         this._clear()
@@ -85,6 +87,7 @@ export class StageScene implements SceneOperation {
             Object.assign(oldGroup, group)
             this._registerPerformer(group)
         })
+        groups.length && this._stage?.runRender(!!run)
     }
 
     setStage(stage: StageContext): void {

@@ -21,7 +21,7 @@ export function callPerformerRender(model: STAGE_RENDER_MODEL, members: Array<Bl
 const renderDict = {
     PARALLEL_RECT: renderParallelRect,
     PARALLEL_LINE: renderParallelLine,
-    PRIORITY_LINE: renderPriorityLine,
+    PRIORITY_LINE: renderPriority,
 }
 
 async function renderParallelRect(group: BlurGroup, stage: StageContext, afterCall?: (value: unknown) => void): Promise<void> {
@@ -36,7 +36,7 @@ async function renderPriorityRect(group: BlurGroup, stage: StageContext, afterCa
 
 }
 
-async function renderPriorityLine({
+async function renderPriority({
                                       members,
                                       performers,
                                       duration,

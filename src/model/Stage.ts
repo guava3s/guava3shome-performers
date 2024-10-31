@@ -62,7 +62,7 @@ export class G3Stage implements StageOperation {
      * @param config 新增配置
      * @private
      */
-    private static _initStageStartParams(originConfig: MetaConfig, config?: MetaConfig): void {
+    private static _initStageStartParams(originConfig: Required<MetaConfig>, config?: MetaConfig): void {
         if (!config)
             return
         const recursionAssign = (source, target): void => {
@@ -82,22 +82,7 @@ export class G3Stage implements StageOperation {
     }
 
     private _initRenderEngine(): void {
-        const _this = this
         this.renderEngine = useRenderEngine(this);
-    }
-
-    private _startEngine(run: boolean): void {
-        if (run) {
-            const lastRenderOption: Required<BlurScene> = deepClone(generateBlurScene(this._scenes[this._scenes.length - 1]))
-            const {width, height} = this.globalProperties
-            this._clearFrameAndRect(0, 0, width, height)
-            this.renderEngine[lastRenderOption.mode](lastRenderOption.groups, this)
-        }
-        const timeCount = incId()
-        Promise.resolve().then(() => {
-
-        })
-        // this._renderContainer.runEngine = false
     }
 
     _addActionFrame(description: PerformerForActionFrame, frame: number): void {
@@ -125,10 +110,20 @@ export class G3Stage implements StageOperation {
 
     /*********************************************active********************************************/
 
+    runRender(run: boolean): void {
+        if (run) {
+            const lastRenderOption: Required<BlurScene> = deepClone(generateBlurScene(this._scenes[this._scenes.length - 1]))
+            const {width, height} = this.globalProperties
+            this._clearFrameAndRect(0, 0, width, height)
+            this.renderEngine[lastRenderOption.mode](lastRenderOption.groups, this)
+        }
+    }
+
     pushScene(scene: StageScene, run?: boolean): string {
         this._ctx.save()
         this._scenes.push(scene)
         scene.setStage(this)
+        this.runRender(!!run)
         return scene.id
         // TODO 控制渲染
     }
@@ -137,6 +132,7 @@ export class G3Stage implements StageOperation {
         const pop = this._scenes.pop()
         if (pop) {
             // TODO 控制渲染
+            this.runRender(!!run)
             return generateBlurScene(pop)
         }
     }
